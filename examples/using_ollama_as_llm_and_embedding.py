@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.WARNING)
 logging.getLogger("nano-graphrag").setLevel(logging.INFO)
 
 # Assumed llm model settings
-MODEL = "your_model_name"
+MODEL = "llama3.1:ctx32k"
 
 # Assumed embedding model settings
 EMBEDDING_MODEL = "nomic-embed-text"

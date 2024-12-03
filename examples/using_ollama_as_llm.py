@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.WARNING)
 logging.getLogger("nano-graphrag").setLevel(logging.INFO)
 
 # !!! qwen2-7B maybe produce unparsable results and cause the extraction of graph to fail.
-MODEL = "qwen2"
+MODEL = "qwen2:ctx32k"
 
 
 async def ollama_model_if_cache(
