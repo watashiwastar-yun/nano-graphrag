@@ -210,6 +210,7 @@ class Neo4jStorage(BaseGraphStorage):
                     )
                     """
                 )
+            
 
                 # Run Leiden algorithm
                 result = await session.run(

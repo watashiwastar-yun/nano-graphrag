@@ -197,6 +197,8 @@ class NetworkXStorage(BaseGraphStorage):
         for node_id, clusters in cluster_data.items():
             self._graph.nodes[node_id]["clusters"] = json.dumps(clusters)
 
+        
+
     async def _leiden_clustering(self):
         from graspologic.partition import hierarchical_leiden
 

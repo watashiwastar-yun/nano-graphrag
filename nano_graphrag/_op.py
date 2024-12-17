@@ -2,6 +2,8 @@ import re
 import json
 import asyncio
 import tiktoken
+import os
+from datetime import datetime
 from typing import Union
 from collections import Counter, defaultdict
 from ._splitter import SeparatorSplitter
@@ -324,12 +326,16 @@ async def extract_entities(
         if isinstance(final_result, list):
             final_result = final_result[0]["text"]
 
+      
         history = pack_user_ass_to_openai_messages(hint_prompt, final_result, using_amazon_bedrock)
         for now_glean_index in range(entity_extract_max_gleaning):
             glean_result = await use_llm_func(continue_prompt, history_messages=history)
 
+           
             history += pack_user_ass_to_openai_messages(continue_prompt, glean_result, using_amazon_bedrock)
             final_result += glean_result
+
+                
             if now_glean_index == entity_extract_max_gleaning - 1:
                 break
 
@@ -344,7 +350,8 @@ async def extract_entities(
             final_result,
             [context_base["record_delimiter"], context_base["completion_delimiter"]],
         )
-
+    
+   
         maybe_nodes = defaultdict(list)
         maybe_edges = defaultdict(list)
         for record in records:
@@ -386,6 +393,7 @@ async def extract_entities(
     results = await asyncio.gather(
         *[_process_single_content(c) for c in ordered_chunks]
     )
+
     print()  # clear the progress bar
     maybe_nodes = defaultdict(list)
     maybe_edges = defaultdict(list)
@@ -395,6 +403,7 @@ async def extract_entities(
         for k, v in m_edges.items():
             # it's undirected graph
             maybe_edges[tuple(sorted(k))].extend(v)
+
     all_entities_data = await asyncio.gather(
         *[
             _merge_nodes_then_upsert(k, v, knwoledge_graph_inst, global_config)
@@ -419,6 +428,9 @@ async def extract_entities(
             for dp in all_entities_data
         }
         await entity_vdb.upsert(data_for_vdb)
+    
+
+
     return knwoledge_graph_inst
 
 
@@ -948,7 +960,7 @@ async def local_query(
     )
     return response
 
-
+# 输入communities_data会输出组+分数
 async def _map_global_communities(
     query: str,
     communities_data: list[CommunitySchema],
@@ -961,11 +973,11 @@ async def _map_global_communities(
     while len(communities_data):
         this_group = truncate_list_by_token_size(
             communities_data,
-            key=lambda x: x["report_string"],
-            max_token_size=query_param.global_max_token_for_community_report,
+            key=lambda x: x["report_string"], # 按照key进行分组
+            max_token_size=query_param.global_max_token_for_community_report,# 确保最大数量不超过
         )
         community_groups.append(this_group)
-        communities_data = communities_data[len(this_group) :]
+        communities_data = communities_data[len(this_group) :]# 切割
 
     async def _process(community_truncated_datas: list[CommunitySchema]) -> dict:
         communities_section_list = [["id", "content", "rating", "importance"]]
@@ -1015,29 +1027,40 @@ async def global_query(
         community_schema.items(),
         key=lambda x: x[1]["occurrence"],
         reverse=True,
-    )
+    ) # 根据occurrence进行排序
     sorted_community_schemas = sorted_community_schemas[
         : query_param.global_max_consider_community
-    ]
+    ] # 列表切片：提取前query_param.global_max_consider_community个元素
     community_datas = await community_reports.get_by_ids(
         [k[0] for k in sorted_community_schemas]
-    )
+    ) # 
     community_datas = [c for c in community_datas if c is not None]
     community_datas = [
         c
         for c in community_datas
         if c["report_json"].get("rating", 0) >= query_param.global_min_community_rating
-    ]
+    ]# 晒出掉community_rating比较低的datas
     community_datas = sorted(
         community_datas,
         key=lambda x: (x["occurrence"], x["report_json"].get("rating", 0)),
         reverse=True,
-    )
+    ) # 根据occurence和rating对report_json进行排名
     logger.info(f"Revtrieved {len(community_datas)} communities")
+
+    output_file_path = os.path.join("query_output", "community_datas.json")
+    with open(output_file_path, "w", encoding="utf-8") as f:
+        json.dump(community_datas, f, indent=4, ensure_ascii=False)
 
     map_communities_points = await _map_global_communities(
         query, community_datas, query_param, global_config
-    )
+    ) # 进行map操作
+   
+
+    output_file_path = os.path.join("query_output", "map_communities_points.json")
+    with open(output_file_path, "w", encoding="utf-8") as f:
+        json.dump(map_communities_points, f, indent=4, ensure_ascii=False)
+
+
     final_support_points = []
     for i, mc in enumerate(map_communities_points):
         for point in mc:
@@ -1070,12 +1093,16 @@ Importance Score: {dp['score']}
 """
         )
     points_context = "\n".join(points_context)
+    output_file_path = os.path.join("query_output", "points_context.json")
+    with open(output_file_path, "w", encoding="utf-8") as f:
+        json.dump(points_context, f, indent=4, ensure_ascii=False)
     if query_param.only_need_context:
         return points_context
     sys_prompt_temp = PROMPTS["global_reduce_rag_response"]
     response = await use_model_func(
         query,
         sys_prompt_temp.format(
+
             report_data=points_context, response_type=query_param.response_type
         ),
     )

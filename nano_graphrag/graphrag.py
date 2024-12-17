@@ -287,16 +287,19 @@ class GraphRAG:
                 max_token_size=self.chunk_token_size,
             )
 
+            #  检查文本块是否已存在于存储中，避免重复插入
             _add_chunk_keys = await self.text_chunks.filter_keys(
                 list(inserting_chunks.keys())
             )
             inserting_chunks = {
                 k: v for k, v in inserting_chunks.items() if k in _add_chunk_keys
             }
+
             if not len(inserting_chunks):
                 logger.warning(f"All chunks are already in the storage")
                 return
-            logger.info(f"[New Chunks] inserting {len(inserting_chunks)} chunks")
+            logger.info(f"[New Chunks] inserting {len(inserting_chunks)} chunks") # [New Chunks] inserting 42 chunks
+            # 检查是否启用了 Naive RAG 模式（简单检索与生成），如果启用，则 将文本块插入向量数据库 (chunks_vdb)
             if self.enable_naive_rag:
                 logger.info("Insert chunks for naive RAG")
                 await self.chunks_vdb.upsert(inserting_chunks)

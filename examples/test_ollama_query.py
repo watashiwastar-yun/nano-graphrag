@@ -69,11 +69,13 @@ def query():
         cheap_model_func=ollama_model_if_cache,
         embedding_func=ollama_embedding,
     )
-    print(
-        rag.query(
-            "What are the top themes in this story?", param=QueryParam(mode="global")
-        )
-    )
+
+    # 获取用户输入
+    user_query = input("请输入您的查询: ")
+
+    # 使用用户输入进行查询
+    result = rag.query(user_query, param=QueryParam(mode="global"))
+    print(result)
 
 
 def insert():
@@ -96,7 +98,7 @@ def insert():
         embedding_func=ollama_embedding,
     )
     start = time()
-    rag.insert(FAKE_TEXT)
+    rag.insert(FAKE_TEXT, param=QueryParam(mode="global"))
     print("indexing time:", time() - start)
     # rag = GraphRAG(working_dir=WORKING_DIR, enable_llm_cache=True)
     # rag.insert(FAKE_TEXT[half_len:])
