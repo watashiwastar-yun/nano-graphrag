@@ -1047,18 +1047,13 @@ async def global_query(
     ) # 根据occurence和rating对report_json进行排名
     logger.info(f"Revtrieved {len(community_datas)} communities")
 
-    output_file_path = os.path.join("query_output", "community_datas.json")
-    with open(output_file_path, "w", encoding="utf-8") as f:
-        json.dump(community_datas, f, indent=4, ensure_ascii=False)
+ 
 
     map_communities_points = await _map_global_communities(
         query, community_datas, query_param, global_config
     ) # 进行map操作
    
 
-    output_file_path = os.path.join("query_output", "map_communities_points.json")
-    with open(output_file_path, "w", encoding="utf-8") as f:
-        json.dump(map_communities_points, f, indent=4, ensure_ascii=False)
 
 
     final_support_points = []
@@ -1093,9 +1088,7 @@ Importance Score: {dp['score']}
 """
         )
     points_context = "\n".join(points_context)
-    output_file_path = os.path.join("query_output", "points_context.json")
-    with open(output_file_path, "w", encoding="utf-8") as f:
-        json.dump(points_context, f, indent=4, ensure_ascii=False)
+   
     if query_param.only_need_context:
         return points_context
     sys_prompt_temp = PROMPTS["global_reduce_rag_response"]
